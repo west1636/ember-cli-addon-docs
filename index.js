@@ -31,7 +31,7 @@ module.exports = {
       sourceDirs: [
         'public',
         'node_modules/ember-cli-addon-docs/public',
-        'tests/dummy/public'
+        'tests/dummy/public' // TODO abram
       ]
     },
     'ember-cli-tailwind': {
@@ -40,7 +40,7 @@ module.exports = {
   },
 
   config(env, baseConfig) {
-    let repo = this.parent.pkg.repository;
+    let repo = this.project.pkg.repository;
     let info = require('hosted-git-info').fromUrl(repo.url || repo);
 
     let config = {
@@ -48,8 +48,8 @@ module.exports = {
         namespacing: false
       },
       'ember-cli-addon-docs': {
-        projectName: this.parent.pkg.name,
-        projectTag: this.parent.pkg.version,
+        projectName: this.project.pkg.name,
+        projectTag: this.project.pkg.version,
         projectHref: info && info.browse(),
         deployVersion: 'ADDON_DOCS_DEPLOY_VERSION'
       }
@@ -69,11 +69,13 @@ module.exports = {
   },
 
   included(includer) {
+    /*
     if (includer.parent) {
       throw new Error(`ember-cli-addon-docs should be in your package.json's devDependencies`);
     } else if (includer.name === this.project.name()) {
       throw new Error(`ember-cli-addon-docs only currently works with addons, not applications`);
     }
+    */
 
     this._super.included.apply(this, arguments);
 
@@ -90,8 +92,13 @@ module.exports = {
     this.addonOptions = Object.assign({}, includer.options['ember-cli-addon-docs']);
     this.addonOptions.projects = Object.assign({}, this.addonOptions.projects);
 
+    for (let addonName of (this.addonOptions.documentedAddons || [])) {
+      this.addonOptions.projects[addonName] = this.project.findAddonByName(addonName);
+    }
+    this.addonOptions.docsAppPath = this.addonOptions.docsAppPath || 'tests/dummy/app';
+
     includer.options.includeFileExtensionInSnippetNames = includer.options.includeFileExtensionInSnippetNames || false;
-    includer.options.snippetSearchPaths = includer.options.snippetSearchPaths || ['tests/dummy/app'];
+    includer.options.snippetSearchPaths = includer.options.snippetSearchPaths || [this.addonOptions.docsAppPath];
     includer.options.snippetRegexes = Object.assign({}, {
       begin: /{{#(?:docs-snippet|demo.example|demo.live-example)\sname=(?:"|')(\S+)(?:"|')/,
       end: /{{\/(?:docs-snippet|demo.example|demo.live-example)}}/,
@@ -136,8 +143,8 @@ module.exports = {
   treeForApp(app) {
     let trees = [ app ];
 
-    let addonPath = this.project.findAddonByName(this.name).root;
-    let addonTree = new Funnel(path.join(addonPath, 'addon'), {
+    let addon = this.project.findAddonByName(this.name) || this.parent.findOwnAddonByName(this.name);
+    let addonTree = new Funnel(path.join(addon.root, addon.treePaths.addon), {
       include: ['**/*.js']
     });
     let autoExportedAddonTree = new AutoExportAddonToApp([ addonTree ]);
@@ -147,10 +154,10 @@ module.exports = {
   },
 
   treeForAddon(tree) {
-    let dummyAppFiles = new FindDummyAppFiles([ 'tests/dummy/app' ]);
+    let docsAppFiles = new FindDocsAppFiles([ this.addonOptions.docsAppPath ]);
     let addonFiles = new FindAddonFiles([ 'addon' ].filter(dir => fs.existsSync(dir)));
 
-    return this._super(new MergeTrees([ tree, dummyAppFiles, addonFiles ]));
+    return this._super(new MergeTrees([ tree, docsAppFiles, addonFiles ]));
   },
 
   treeForVendor(vendor) {
@@ -163,7 +170,8 @@ module.exports = {
   },
 
   treeForPublic() {
-    let parentAddon = this.parent.findAddonByName(this.parent.name());
+    let parentName = typeof this.parent.name === 'function' ? this.parent.name() : this.parent.name;
+    let parentAddon = this.project.findAddonByName(parentName);
     let defaultTree = this._super.treeForPublic.apply(this, arguments);
 
     if (!parentAddon) { return defaultTree; }
@@ -175,14 +183,17 @@ module.exports = {
     let project = this.project;
     let docsTrees = [];
 
-    this.addonOptions.projects.main = this.addonOptions.projects.main || generateDefaultProject(parentAddon);
+    let projects = this.addonOptions.projects;
+    if (!projects || Object.keys(projects).length === 0) {
+      projects.main = parentAddon;
+    }
 
-    for (let projectName in this.addonOptions.projects) {
-      let addonSourceTree = this.addonOptions.projects[projectName];
+    for (let projectName in projects) {
+      let tree = addonSourceTree(projects[projectName]);
 
       let pluginRegistry = new PluginRegistry(project);
 
-      let docsGenerators = pluginRegistry.createDocsGenerators(addonSourceTree, {
+      let docsGenerators = pluginRegistry.createDocsGenerators(tree, {
         destDir: 'docs',
         project,
         parentAddon
@@ -247,34 +258,34 @@ function findImporter(addon) {
   }
 }
 
-function generateDefaultProject(parentAddon) {
+function addonSourceTree(addon) {
   let includeFunnels = [
     // We need to be very careful to avoid triggering a watch on the addon root here
     // because of https://github.com/nodejs/node/issues/15683
-    new Funnel(new UnwatchedDir(parentAddon.root), {
+    new Funnel(new UnwatchedDir(addon.root), {
       include: ['package.json', 'README.md']
     })
   ];
 
-  let addonTreePath = path.join(parentAddon.root, parentAddon.treePaths['addon']);
-  let testSupportPath = path.join(parentAddon.root, parentAddon.treePaths['addon-test-support']);
+  let addonTreePath = path.join(addon.root, addon.treePaths['addon']);
+  let testSupportPath = path.join(addon.root, addon.treePaths['addon-test-support']);
 
   if (fs.existsSync(addonTreePath)) {
     includeFunnels.push(new Funnel(addonTreePath, {
-      destDir: parentAddon.name
+      destDir: addon.name
     }));
   }
 
   if (fs.existsSync(testSupportPath)) {
     includeFunnels.push(new Funnel(testSupportPath, {
-      destDir: `${parentAddon.name}/test-support`
+      destDir: `${addon.name}/test-support`
     }));
   }
 
   return new MergeTrees(includeFunnels);
 }
 
-class FindDummyAppFiles extends Plugin {
+class FindDocsAppFiles extends Plugin {
   build() {
     let addonPath = this.inputPaths[0];
     let paths = walkSync(addonPath, { directories: false })
