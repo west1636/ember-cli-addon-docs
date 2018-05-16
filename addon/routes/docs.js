@@ -1,12 +1,15 @@
 import Route from '@ember/routing/route';
 import config from 'ember-cli-addon-docs/-docs-app/config/environment';
+import RSVP from 'rsvp';
 
-const projectName = config['ember-cli-addon-docs'].projectName;
+const documentedAddons = config['ember-cli-addon-docs'].documentedAddons;
 
 export default Route.extend({
 
   model() {
-    return this.store.findRecord('project', projectName);
+    return RSVP.all(documentedAddons.map(addonName =>
+      this.store.findRecord('project', addonName)
+    ));
   }
 
 });

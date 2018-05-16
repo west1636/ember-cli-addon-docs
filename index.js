@@ -91,10 +91,18 @@ module.exports = {
 
     this.addonOptions = Object.assign({}, includer.options['ember-cli-addon-docs']);
     this.addonOptions.projects = Object.assign({}, this.addonOptions.projects);
-    this.addonOptions.docsAppPath = this.addonOptions.docsAppPath || 'tests/dummy/app';
-    this.addonOptions.docsApp = this.addonOptions.docsApp || 'dummy';
 
-    for (let addonName of (this.addonOptions.documentedAddons || [])) {
+    let config;
+    if (includer.engineConfig) {
+        config = includer.engineConfig();
+    } else {
+        config = includer.config(process.env.EMBER_ENV) || {};
+    }
+    const addonConfig = config['ember-cli-addon-docs'] || {};
+    this.addonOptions.docsAppPath = addonConfig.docsAppPath || 'tests/dummy/app';
+    this.addonOptions.docsApp = addonConfig.docsApp || 'dummy';
+
+    for (let addonName of (addonConfig.documentedAddons || [])) {
       this.addonOptions.projects[addonName] = this.project.findAddonByName(addonName);
     }
 
