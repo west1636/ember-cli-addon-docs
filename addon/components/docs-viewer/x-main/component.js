@@ -4,7 +4,7 @@ import { bind } from '@ember/runloop';
 import { computed } from '@ember/object';
 import appFiles from 'ember-cli-addon-docs/app-files';
 import addonFiles from 'ember-cli-addon-docs/addon-files';
-import config from 'dummy/config/environment';
+import config from 'ember-cli-addon-docs/-docs-app/config/environment';
 import { getOwner } from '@ember/application';
 
 import layout from './template';

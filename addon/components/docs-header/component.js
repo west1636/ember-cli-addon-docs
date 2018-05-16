@@ -1,8 +1,8 @@
 import Component from '@ember/component';
 import layout from './template';
-import config from 'dummy/config/environment';
 import { computed } from '@ember/object';
 import { classify } from '@ember/string';
+import config from 'ember-cli-addon-docs/-docs-app/config/environment';
 import { addonLogo } from 'ember-cli-addon-docs/utils/computed';
 import { inject as service } from '@ember/service';
 import { reads } from '@ember/object/computed';

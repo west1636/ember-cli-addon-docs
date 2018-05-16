@@ -1,7 +1,7 @@
 import { computed } from '@ember/object';
 import Component from '@ember/component';
 import layout from './template';
-import Snippets from "dummy/snippets";
+import Snippets from "ember-cli-addon-docs/-docs-app/snippets";
 
 /**
   A snippet component for demonstrating some code

@@ -91,11 +91,12 @@ module.exports = {
 
     this.addonOptions = Object.assign({}, includer.options['ember-cli-addon-docs']);
     this.addonOptions.projects = Object.assign({}, this.addonOptions.projects);
+    this.addonOptions.docsAppPath = this.addonOptions.docsAppPath || 'tests/dummy/app';
+    this.addonOptions.docsApp = this.addonOptions.docsApp || 'dummy';
 
     for (let addonName of (this.addonOptions.documentedAddons || [])) {
       this.addonOptions.projects[addonName] = this.project.findAddonByName(addonName);
     }
-    this.addonOptions.docsAppPath = this.addonOptions.docsAppPath || 'tests/dummy/app';
 
     includer.options.includeFileExtensionInSnippetNames = includer.options.includeFileExtensionInSnippetNames || false;
     includer.options.snippetSearchPaths = includer.options.snippetSearchPaths || [this.addonOptions.docsAppPath];

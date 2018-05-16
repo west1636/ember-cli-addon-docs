@@ -1,7 +1,7 @@
 import Component from '@ember/component';
 import Ember from 'ember';
 import layout from './template';
-import snippets from 'dummy/snippets';
+import snippets from 'ember-cli-addon-docs/-docs-app/snippets';
 
 export default Component.extend({
   layout,

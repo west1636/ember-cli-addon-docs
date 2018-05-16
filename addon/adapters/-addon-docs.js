@@ -1,5 +1,5 @@
 import DS from 'ember-data';
-import config from 'dummy/config/environment';
+import config from 'ember-cli-addon-docs/-docs-app/config/environment';
 import fetch from 'fetch';
 
 export default DS.Adapter.extend({
