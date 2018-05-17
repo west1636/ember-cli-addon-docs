@@ -44,7 +44,7 @@
     "ember-component-css": "^0.3.5",
     "ember-concurrency": "^0.8.16",
     "ember-data": "^2.18.0",
-    "ember-href-to": "^1.15.1",
+    "ember-href-to": "https://github.com/aaxelb/ember-href-to#engine-support#2",
     "ember-keyboard": "^3.0.0",
     "ember-modal-dialog": "2.4.3",
     "ember-responsive": "^3.0.0-beta.1",
