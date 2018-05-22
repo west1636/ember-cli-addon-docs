@@ -6,7 +6,22 @@ function escape(text) {
   return text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-function functionSignature({ name, params, returns }) {
+function functionSignature(typed) {
+  let signature;
+
+  if (typed.signatures) {
+    signature = typed.signatures.map(s => singleFunctionSignature({
+      name: typed.name,
+      params: s.params,
+      returns: s.returns,
+    })).join('<br>');
+  } else {
+    signature = singleFunctionSignature(typed);
+  }
+
+  return signature;
+}
+function singleFunctionSignature({ name, params, returns }) {
   let paramSignature = params.filter(p => !p.name.includes('.')).map(({ name, type }) => {
     return [`<strong>${name}</strong>`, `<em>${type}</em>`].join(': ');
   }).join(', ')
