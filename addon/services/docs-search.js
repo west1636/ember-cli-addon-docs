@@ -87,7 +87,9 @@ export default Service.extend({
 
   _indexURL: computed(function() {
     let config = getOwner(this).resolveRegistration('config:environment');
-    return `${config.rootURL}ember-cli-addon-docs/search-index.json`;
+    let rootURL = config.rootURL.replace(/\/$/, '');
+    let assetsPath = config['ember-cli-addon-docs'].assetsUrlPath || '/';
+    return `${rootURL}${assetsPath}ember-cli-addon-docs/search-index.json`;
   })
 });
 
