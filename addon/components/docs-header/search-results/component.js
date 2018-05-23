@@ -5,6 +5,7 @@ import { EKMixin, keyUp, keyDown } from 'ember-keyboard';
 import { on } from '@ember/object/evented';
 import { computed } from '@ember/object';
 import { task } from 'ember-concurrency';
+import config from 'ember-cli-addon-docs/-docs-app/config/environment';
 
 export default Component.extend(EKMixin, {
   layout,
@@ -50,10 +51,13 @@ export default Component.extend(EKMixin, {
     let router = this.get('router');
     let routerMicrolib = router._router._routerMicrolib || router._router.router;
 
+    let routePrefix = config['ember-cli-addon-docs'].docsApp;
+
     if (rawSearchResults) {
       let filteredSearchResults = this.get('rawSearchResults')
         .filter(({ document }) => {
-          let routeExists = routerMicrolib.recognizer.names[document.route];
+          let route = routePrefix ? `${routePrefix}.${document.route}` : document.route;
+          let routeExists = routerMicrolib.recognizer.names[route];
           return routeExists && document.route !== 'not-found';
         })
         .filter(({ document }) => {

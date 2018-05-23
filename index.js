@@ -10,6 +10,14 @@ const EmberApp = require('ember-cli/lib/broccoli/ember-app'); // eslint-disable-
 const Plugin = require('broccoli-plugin');
 const walkSync = require('walk-sync');
 
+function getConfig(appOrEngine) {
+    if (appOrEngine.engineConfig) {
+        return appOrEngine.engineConfig();
+    } else {
+        return appOrEngine.config(process.env.EMBER_ENV) || {};
+    }
+}
+
 module.exports = {
   name: 'ember-cli-addon-docs',
 
@@ -92,12 +100,7 @@ module.exports = {
     this.addonOptions = Object.assign({}, includer.options['ember-cli-addon-docs']);
     this.addonOptions.projects = Object.assign({}, this.addonOptions.projects);
 
-    let config;
-    if (includer.engineConfig) {
-        config = includer.engineConfig();
-    } else {
-        config = includer.config(process.env.EMBER_ENV) || {};
-    }
+    const config = getConfig(includer);
     const addonConfig = config['ember-cli-addon-docs'] || {};
     this.addonOptions.docsAppPath = addonConfig.docsAppPath || 'tests/dummy/app';
     this.addonOptions.docsApp = addonConfig.docsApp || 'dummy';
@@ -221,7 +224,7 @@ module.exports = {
     let templateContentsTree = this.contentExtractor.getTemplateContentsTree();
     let searchIndexTree = new SearchIndexer(new MergeTrees([docsTree, templateContentsTree]), {
       outputFile: 'ember-cli-addon-docs/search-index.json',
-      config: this.project.config(EmberApp.env())
+      config: getConfig(this.parent),
     });
 
     return new MergeTrees([ defaultTree, docsTree, searchIndexTree ]);
