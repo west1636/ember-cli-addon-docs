@@ -2,11 +2,13 @@
   {{yield}}
 
   <div class="mt-16 mb-8">
-    <a href={{editCurrentPageUrl}}
-      class='transition text-grey-darkest opacity-50 text-sm
-      hover:opacity-75 no-underline border-b border-grey hover:border-grey-darkest'>
-      Edit this page
-    </a>
+    {{#if editCurrentPageUrl}}
+      <a href={{editCurrentPageUrl}}
+        class='transition text-grey-darkest opacity-50 text-sm
+        hover:opacity-75 no-underline border-b border-grey hover:border-grey-darkest'>
+        Edit this page
+      </a>
+    {{/if}}
   </div>
 
 </div>

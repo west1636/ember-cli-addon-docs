@@ -10,6 +10,8 @@ import { getOwner } from '@ember/application';
 import layout from './template';
 
 const projectHref = config['ember-cli-addon-docs'].projectHref;
+const editDocPath = config['ember-cli-addon-docs'].editDocPath || '/edit/master/tests/dummy/app/';
+const editSourcePath = config['ember-cli-addon-docs'].editSourcePath || '/edit/master/addon/';
 
 const tagToSize = { H2: 'xs', H3: 'xs' };
 const tagToIndent = { H2: '0', H3: '4' };
@@ -68,22 +70,25 @@ export default Component.extend({
       // `router` doesn't exist for old ember versions via ember-try
       return;
     }
+    path = path.slice(path.search(/\bdocs\./));
 
     path = path.replace(/\./g, '/');
 
-    if (path === 'docs/api/item') {
+    if (path.endsWith('docs/api/item')) {
       let { path } = getOwner(this).lookup('route:application').paramsFor('docs.api.item');
       let file = addonFiles.find(f => f.match(path));
 
       if (file) {
-        return `${projectHref}/edit/master/addon/${file}`;
+        return `${projectHref}${editSourcePath}${file}`;
       }
     } else {
       let file = appFiles
         .filter(file => file.match(/template.(hbs|md)/))
         .find(file => file.match(path));
 
-      return `${projectHref}/edit/master/tests/dummy/app/${file}`;
+      if (file) {
+        return `${projectHref}${editDocPath}${file}`;
+      }
     }
   })
 
