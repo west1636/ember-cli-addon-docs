@@ -192,31 +192,36 @@ module.exports = {
     let DocsCompiler = require('./lib/broccoli/docs-compiler');
     let SearchIndexer = require('./lib/broccoli/search-indexer');
 
+    let config = getConfig(this.parent);
+    let addonConfig = config['ember-cli-addon-docs'] || {};
+
     let project = this.project;
     let docsTrees = [];
 
-    let projects = this.addonOptions.projects;
-    if (!projects || Object.keys(projects).length === 0) {
-      projects.main = parentAddon;
-    }
+    if (!addonConfig.disableGeneratedDocs) {
+      let projects = this.addonOptions.projects;
+      if (!projects || Object.keys(projects).length === 0) {
+        projects.main = parentAddon;
+      }
 
-    for (let projectName in projects) {
-      let tree = addonSourceTree(projects[projectName]);
+      for (let projectName in projects) {
+        let tree = addonSourceTree(projects[projectName]);
 
-      let pluginRegistry = new PluginRegistry(project);
+        let pluginRegistry = new PluginRegistry(project);
 
-      let docsGenerators = pluginRegistry.createDocsGenerators(tree, {
-        destDir: 'docs',
-        project,
-        parentAddon
-      });
+        let docsGenerators = pluginRegistry.createDocsGenerators(tree, {
+          destDir: 'docs',
+          project,
+          parentAddon
+        });
 
-      docsTrees.push(
-        new DocsCompiler(docsGenerators, {
-          name: projectName === 'main' ? parentAddon.name : projectName,
-          project
-        })
-      );
+        docsTrees.push(
+          new DocsCompiler(docsGenerators, {
+            name: projectName === 'main' ? parentAddon.name : projectName,
+            project
+          })
+        );
+      }
     }
 
     let docsTree = new MergeTrees(docsTrees);
@@ -224,7 +229,7 @@ module.exports = {
     let templateContentsTree = this.contentExtractor.getTemplateContentsTree();
     let searchIndexTree = new SearchIndexer(new MergeTrees([docsTree, templateContentsTree]), {
       outputFile: 'ember-cli-addon-docs/search-index.json',
-      config: getConfig(this.parent),
+      config,
     });
 
     return new MergeTrees([ defaultTree, docsTree, searchIndexTree ]);
