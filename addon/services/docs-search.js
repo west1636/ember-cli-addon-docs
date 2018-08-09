@@ -1,15 +1,18 @@
-import Service from '@ember/service';
+import Service, { inject as service } from '@ember/service';
 import { getOwner } from '@ember/application';
 import { computed } from '@ember/object';
 import lunr from 'lunr';
+import config from 'ember-cli-addon-docs/-docs-app/config/environment';
 
 const { Index, Query } = lunr;
 
 export default Service.extend({
+  docsFetch: service(),
+
   search(phrase) {
     return this.loadSearchIndex()
       .then(({ index, documents }) => {
-        let words = phrase.toLowerCase().split(/\s+/);
+        let words = phrase.toLowerCase().split(new RegExp(config['ember-cli-addon-docs'].searchTokenSeparator));
         let results = index.query((query) => {
           // In the future we could boost results based on the field they come from
           for (let word of words) {
@@ -72,8 +75,7 @@ export default Service.extend({
 
   loadSearchIndex() {
     if (!this._searchIndex) {
-      this._searchIndex = fetch(this.get('_indexURL'))
-        .then(res => res.json())
+      this._searchIndex = this.get('docsFetch').fetch({ url: this.get('_indexURL') }).json()
         .then(json => {
           return {
             index: Index.load(json.index),

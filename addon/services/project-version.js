@@ -1,17 +1,29 @@
-import Service from '@ember/service';
+import Service, { inject as service } from '@ember/service';
 import { getOwner } from '@ember/application';
-import fetch from 'fetch';
 import { computed } from '@ember/object';
 import { task } from 'ember-concurrency';
+import config from 'ember-cli-addon-docs/-docs-app/config/environment';
+import { assign } from '@ember/polyfills';
+
+const { latestVersionName } = config['ember-cli-addon-docs'];
 
 export default Service.extend({
+  docsFetch: service(),
+
   _loadAvailableVersions: task(function*() {
-    let response = yield fetch(`${this.get('root')}versions.json`);
-    let json = yield response.ok ? response.json() : { latest: this.get('currentVersion') };
+    let response = yield this.get('docsFetch').fetch({ url: `${this.get('root')}versions.json` }).response();
+    let json;
+    if(response.ok){
+      json = yield response.json();
+    }else{
+      json = { [latestVersionName]: assign({}, this.get('currentVersion')) };
+    }
+
 
     this.set('versions', Object.keys(json).map(key => {
       let version = json[key];
       version.truncatedSha = version.sha.substr(0,5);
+      version.key = key;
 
       return version;
     }));
@@ -37,7 +49,8 @@ export default Service.extend({
     // In development, this token won't have been replaced replaced
     if (currentVersion === 'ADDON_DOCS_DEPLOY_VERSION') {
       currentVersion = {
-        name: 'latest',
+        key: latestVersionName,
+        name: latestVersionName,
         tag: config.projectTag,
         path: '',
         sha: 'abcde'

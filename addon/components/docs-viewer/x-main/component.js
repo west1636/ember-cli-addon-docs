@@ -9,9 +9,7 @@ import { getOwner } from '@ember/application';
 
 import layout from './template';
 
-const projectHref = config['ember-cli-addon-docs'].projectHref;
-const editDocPath = config['ember-cli-addon-docs'].editDocPath || '/edit/master/tests/dummy/app/';
-const editSourcePath = config['ember-cli-addon-docs'].editSourcePath || '/edit/master/addon/';
+const { projectHref, primaryBranch, editDocPath, editSourcePath } = config['ember-cli-addon-docs'];
 
 const tagToSize = { H2: 'xs', H3: 'xs' };
 const tagToIndent = { H2: '0', H3: '4' };
@@ -25,7 +23,7 @@ export default Component.extend({
   docsRoutes: service(),
 
   tagName: 'main',
-  classNames: ['lg:w-4/5', 'xl:w-3/5', 'max-w-md', 'lg:max-w-none', 'mx-auto', 'lg:mx-0', 'mt-6', 'flex-no-shrink'],
+  classNames: ['lg:ad-w-4/5', 'xl:ad-w-3/5', 'ad-max-w-md', 'lg:ad-max-w-none', 'ad-mx-auto', 'lg:ad-mx-0', 'ad-mt-6', 'ad-flex-no-shrink'],
 
   didInsertElement() {
     this._super(...arguments);
@@ -79,15 +77,23 @@ export default Component.extend({
       let file = addonFiles.find(f => f.match(path));
 
       if (file) {
-        return `${projectHref}${editSourcePath}${file}`;
+        if (editSourcePath) {
+          return `${projectHref}${editSourcePath}${file}`;
+        } else {
+          return `${projectHref}/edit/${primaryBranch}/addon/${file}`;
+        }
       }
     } else {
       let file = appFiles
-        .filter(file => file.match(/template.(hbs|md)/))
+        .filter(file => file.match(/template.+(hbs|md)/))
         .find(file => file.match(path));
 
       if (file) {
-        return `${projectHref}${editDocPath}${file}`;
+        if (editDocPath) {
+          return `${projectHref}${editDocPath}${file}`;
+        } else {
+          return `${projectHref}/edit/${primaryBranch}/tests/dummy/app/${file}`;
+        }
       }
     }
   })

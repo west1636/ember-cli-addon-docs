@@ -2,13 +2,14 @@
 
 const fs = require('fs');
 const path = require('path');
-const resolve = require('resolve');
 const UnwatchedDir = require('broccoli-source').UnwatchedDir;
 const MergeTrees = require('broccoli-merge-trees');
 const Funnel = require('broccoli-funnel');
 const EmberApp = require('ember-cli/lib/broccoli/ember-app'); // eslint-disable-line node/no-unpublished-require
 const Plugin = require('broccoli-plugin');
 const walkSync = require('walk-sync');
+
+const LATEST_VERSION_NAME = '-latest';
 
 function getConfig(appOrEngine) {
     if (appOrEngine.engineConfig) {
@@ -21,10 +22,9 @@ function getConfig(appOrEngine) {
 module.exports = {
   name: 'ember-cli-addon-docs',
 
+  LATEST_VERSION_NAME,
+
   options: {
-    ace: {
-      modes: ['handlebars']
-    },
     nodeAssets: {
       'highlight.js': {
         public: {
@@ -50,6 +50,7 @@ module.exports = {
   config(env, baseConfig) {
     let repo = this.project.pkg.repository;
     let info = require('hosted-git-info').fromUrl(repo.url || repo);
+    let userConfig = this._readUserConfig();
 
     let config = {
       'ember-component-css': {
@@ -59,7 +60,10 @@ module.exports = {
         projectName: this.project.pkg.name,
         projectTag: this.project.pkg.version,
         projectHref: info && info.browse(),
-        deployVersion: 'ADDON_DOCS_DEPLOY_VERSION'
+        primaryBranch: userConfig.getPrimaryBranch(),
+        latestVersionName: LATEST_VERSION_NAME,
+        deployVersion: 'ADDON_DOCS_DEPLOY_VERSION',
+        searchTokenSeparator: "\\s+"
       }
     };
 
@@ -112,13 +116,12 @@ module.exports = {
     includer.options.includeFileExtensionInSnippetNames = includer.options.includeFileExtensionInSnippetNames || false;
     includer.options.snippetSearchPaths = includer.options.snippetSearchPaths || [this.addonOptions.docsAppPath];
     includer.options.snippetRegexes = Object.assign({}, {
-      begin: /{{#(?:docs-snippet|demo.example|demo.live-example)\sname=(?:"|')(\S+)(?:"|')/,
-      end: /{{\/(?:docs-snippet|demo.example|demo.live-example)}}/,
+      begin: /{{#(?:docs-snippet|demo.example)\sname=(?:"|')(\S+)(?:"|')/,
+      end: /{{\/(?:docs-snippet|demo.example)}}/,
     }, includer.options.snippetRegexes);
 
     let importer = findImporter(this);
 
-    importer.import(`${this._hasEmberSource() ? 'vendor' : 'bower_components'}/ember/ember-template-compiler.js`);
     importer.import('vendor/lunr/lunr.js', {
       using: [{ transformation: 'amd', as: 'lunr' }]
     });
@@ -131,10 +134,7 @@ module.exports = {
 
   createDeployPlugin() {
     const AddonDocsDeployPlugin = require('./lib/deploy/plugin');
-    const readConfig = require('./lib/utils/read-config');
-
-    let userConfig = readConfig(this.project);
-    return new AddonDocsDeployPlugin(userConfig);
+    return new AddonDocsDeployPlugin(this._readUserConfig());
   },
 
   setupPreprocessorRegistry(type, registry) {
@@ -142,7 +142,7 @@ module.exports = {
       let TemplateCompiler = require('./lib/preprocessors/markdown-template-compiler');
       let ContentExtractor = require('./lib/preprocessors/hbs-content-extractor');
       registry.add('template', new TemplateCompiler());
-      registry.add('template', this.contentExtractor = new ContentExtractor());
+      registry.add('template', new ContentExtractor(this.getBroccoliBridge()));
     }
   },
 
@@ -176,8 +176,7 @@ module.exports = {
     return new MergeTrees([
       vendor,
       this._highlightJSTree(),
-      this._lunrTree(),
-      this._templateCompilerTree()
+      this._lunrTree()
     ].filter(Boolean));
   },
 
@@ -226,13 +225,21 @@ module.exports = {
 
     let docsTree = new MergeTrees(docsTrees);
 
-    let templateContentsTree = this.contentExtractor.getTemplateContentsTree();
+    let templateContentsTree = this.getBroccoliBridge().placeholderFor('template-contents');
     let searchIndexTree = new SearchIndexer(new MergeTrees([docsTree, templateContentsTree]), {
       outputFile: 'ember-cli-addon-docs/search-index.json',
       config,
     });
 
     return new MergeTrees([ defaultTree, docsTree, searchIndexTree ]);
+  },
+
+  getBroccoliBridge() {
+    if (!this._broccoliBridge) {
+      const Bridge = require('broccoli-bridge');
+      this._broccoliBridge = new Bridge();
+    }
+    return this._broccoliBridge;
   },
 
   _lunrTree() {
@@ -246,17 +253,13 @@ module.exports = {
     });
   },
 
-  _templateCompilerTree() {
-    if (this._hasEmberSource()) {
-      return new Funnel(path.dirname(resolve.sync('ember-source/package.json'), { basedir: this.project.root }), {
-        srcDir: 'dist',
-        destDir: 'ember'
-      });
+  _readUserConfig() {
+    if (!this._userConfig) {
+      const readConfig = require('./lib/utils/read-config');
+      this._userConfig = readConfig(this.project);
     }
-  },
 
-  _hasEmberSource() {
-    return 'ember-source' in this.project.pkg.devDependencies;
+    return this._userConfig;
   }
 };
 
